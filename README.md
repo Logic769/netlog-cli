@@ -1,50 +1,121 @@
-# logIN– CLI Network Traffic Logger
+# 🌐 netlog-cli
 
-## About
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python: 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
+[![CLI: Rich TUI](https://img.shields.io/badge/Interface-Rich%20TUI-brightgreen.svg)](https://github.com/Textualize/rich)
+[![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-NetLog is a command-line based networking project built using Python.  
-It monitors real-time network connections on the system and helps analyze which processes are using the internet.
+A high-performance Linux terminal network telemetry dashboard tracking socket lifecycles, per-process bandwidth consumption, asynchronous reverse DNS resolution, and connection anomaly alerts in real time.
 
-## Why I Built This
+---
 
-I created this project because I am interested in networking and wanted to understand how network activity works at system level.  
-This project helped me learn how Python can be used to track active connections and analyze them in a simple way.
+## ⚡ Overview
 
-## Features
+`netlog-cli` bridges the gap between low-level socket utilities (`ss`, `lsof`, `netstat`) and high-level process monitors (`htop`, `nethogs`). It aggregates raw system internet sockets (TCP/UDP), maps them back to the generating processes, computes real-time upload/download delta rates, and resolves remote peer hostnames asynchronously without blocking the UI rendering thread.
 
-- View active network connections  
-- See which process is using the network  
-- Save network activity to text log files  
-- Export connection data to CSV  
-- Filter connections by process name  
-- Live monitoring mode  
+```text
+       ┌────────────────────────┐
+       │ Linux Kernel / Sockets │
+       └───────────┬────────────┘
+                   │ psutil.net_connections()
+                   ▼
+       ┌────────────────────────┐       ┌───────────────────────┐
+       │ SocketMonitor (Core)   ├──────►│ RateCalculator (KB/s)│
+       └───────────┬────────────┘       └───────────┬───────────┘
+                   │                                │
+                   ▼                                ▼
+       ┌────────────────────────┐       ┌───────────────────────┐
+       │ AsyncDNSResolver       │       │ AnomalyDetector       │
+       │ (Thread Pool + LRU)    │       │ (Heuristic Security)  │
+       └───────────┬────────────┘       └───────────┬───────────┘
+                   │                                │
+                   └───────────────┬────────────────┘
+                                   ▼
+                   ┌────────────────────────────────┐
+                   │ Rich Live Terminal Dashboard   │
+                   └────────────────────────────────┘
+```
 
-## Technologies Used
+---
 
-- Python  
-- psutil library  
-- CSV module  
-- OS and system networking  
+## 🚀 Features
 
-## How to Run
+- **Real-Time Terminal TUI:** Clean, auto-refreshing interface powered by `Rich` with zero screen flickering.
+- **Process-Level Attribution:** Maps active TCP and UDP sockets to their originating PID, command name, and user.
+- **Differential Rate Engine:** Computes rolling delta bandwidth rates (Down / Up KB/s) for both the system and individual processes.
+- **Non-Blocking Async Reverse DNS:** Background worker pool resolves remote IP addresses into hostnames with an LRU cache, preventing network lag from stalling the UI.
+- **Security & Anomaly Detection:** Flags cleartext legacy protocols (Telnet, FTP, TFTP) and abnormal socket spikes.
+- **Exporting Capabilities:** Dump point-in-time snapshots to clean CSV or stream structured JSON lines for SIEM/audit logging.
 
-1. Install required library:
-:import psutil
-import time
-import datetime
-import os
-import csv
-2. Run the program: python log.py
-3. Use the menu to select different options.
+---
 
-## Learning Outcome
+## 📦 Installation
 
-- Understood process-level networking  
-- Learned how sockets and connections work  
-- Practiced Python file handling  
-- Built a real-world CLI tool  
+Clone the repository and install it directly via pip:
 
-## Future Improvements
+```bash
+git clone https://github.com/mokshithr530/netlog-cli.git
+cd netlog-cli
+pip install -e .
+```
 
-- Add protocol filtering  
-- Show data usage statistics  
+---
+
+## 🛠️ Usage
+
+### 1. Launch the Live Dashboard
+```bash
+netlog
+```
+
+### 2. Filter by Process Name (e.g., Brave or Python)
+```bash
+netlog --process brave
+```
+
+### 3. Adjust Sampling Interval
+```bash
+netlog -i 0.5 --rows 30
+```
+
+### 4. Single-Shot Snapshot (Scripting & Piping)
+```bash
+netlog --once
+```
+
+### 5. Export Sockets to CSV or JSONL
+```bash
+netlog --once --export-csv /tmp/network_audit.csv
+netlog --export-json /tmp/network_stream.jsonl
+```
+
+---
+
+## 🖥️ Sample Output
+
+```text
+ 🌐 NETLOG-CLI   |  Active Sockets: 42  |  Tracked Processes: 18  |  ▼ Down: 124.5 KB/s  ▲ Up: 18.2 KB/s 
+
+    PID  Process           Proto  Local Endpoint         Remote Endpoint        Peer Hostname             State        Status / Alert 
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+   7576  antigravity       TCP    10.0.2.238:36410       172.217.114.4:443      172.217.114.4             ESTABLISHED  OK             
+   7653  brave             TCP    10.0.2.238:45212       142.250.190.46:443     google.com                ESTABLISHED  OK             
+  25340  wacli             TCP    10.0.2.238:40118       57.144.55.32:443       whatsapp.net              ESTABLISHED  OK             
+    738  NetworkManager    UDP    10.0.2.238:68          192.168.3.2:67         lan                       STATELESS    OK             
+   1010  Hyprland          TCP    127.0.0.1:37952        *:*                    *:*                       LISTEN       OK             
+    999  legacy_service    TCP    192.168.1.10:45000     45.33.32.156:23        insecure-host.net         ESTABLISHED  ⚠ Insecure Telnet
+```
+
+---
+
+## 🧪 Running Unit Tests
+
+```bash
+pytest -v
+```
+
+---
+
+## 📄 License
+
+Distributed under the **MIT License**. See `LICENSE` for more information.
