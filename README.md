@@ -1,9 +1,11 @@
 # 🌐 netlog-cli
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python: 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
-[![CLI: Rich TUI](https://img.shields.io/badge/Interface-Rich%20TUI-brightgreen.svg)](https://github.com/Textualize/rich)
-[![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Release](https://img.shields.io/github/v/release/mokshithr530/netlog-cli?color=blue&style=flat-square)](https://github.com/mokshithr530/netlog-cli/releases)
+[![CI Test Suite](https://img.shields.io/github/actions/workflow/status/mokshithr530/netlog-cli/ci.yml?branch=main&label=CI&style=flat-square)](https://github.com/mokshithr530/netlog-cli/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![Python: 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg?style=flat-square)](https://www.python.org/)
+[![CLI: Rich TUI](https://img.shields.io/badge/Interface-Rich%20TUI-brightgreen.svg?style=flat-square)](https://github.com/Textualize/rich)
+[![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg?style=flat-square)](https://github.com/psf/black)
 
 A high-performance Linux terminal network telemetry dashboard tracking socket lifecycles, per-process bandwidth consumption, asynchronous reverse DNS resolution, GeoIP enrichment, and connection anomaly alerts in real time.
 
@@ -137,6 +139,14 @@ netlog --export-json /tmp/network_stream.jsonl
 ```bash
 pytest -v
 ```
+
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome!
+- Check existing issues or submit a new [Bug Report or Feature Request](https://github.com/mokshithr530/netlog-cli/issues).
+- Please read the [Contributing Guidelines](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting a Pull Request.
 
 ---
 
