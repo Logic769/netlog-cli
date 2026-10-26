@@ -67,14 +67,20 @@ A high-performance Linux terminal network telemetry dashboard tracking socket li
 
 ---
 
-## 📦 Installation
+## 📦 Installation & Deployment
 
-Clone the repository and install it directly via pip:
-
+### Local Installation
 ```bash
 git clone https://github.com/mokshithr530/netlog-cli.git
 cd netlog-cli
 pip install -e .
+```
+
+### Run via Docker
+To monitor host network sockets from inside Docker, launch with `--net=host`:
+```bash
+docker build -t netlog-cli .
+docker run --rm -it --net=host netlog-cli
 ```
 
 ---

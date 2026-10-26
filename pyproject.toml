@@ -4,21 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "netlog-cli"
-version = "0.2.0"
+version = "1.0.0"
 description = "High-performance CLI network telemetry dashboard tracking socket states, live bandwidth rates, and async DNS."
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "MIT" }
+license = "MIT"
 authors = [
     { name = "Mokshith Reddy", email = "mokshithr530@gmail.com" }
 ]
 keywords = ["networking", "cli", "telemetry", "traffic-monitor", "linux", "tui", "bandwidth"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
