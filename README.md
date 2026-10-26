@@ -5,7 +5,9 @@
 [![CLI: Rich TUI](https://img.shields.io/badge/Interface-Rich%20TUI-brightgreen.svg)](https://github.com/Textualize/rich)
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-A high-performance Linux terminal network telemetry dashboard tracking socket lifecycles, per-process bandwidth consumption, asynchronous reverse DNS resolution, and connection anomaly alerts in real time.
+A high-performance Linux terminal network telemetry dashboard tracking socket lifecycles, per-process bandwidth consumption, asynchronous reverse DNS resolution, GeoIP enrichment, and connection anomaly alerts in real time.
+
+![netlog-cli Live Terminal Dashboard](assets/demo.svg)
 
 ---
 
@@ -41,9 +43,11 @@ A high-performance Linux terminal network telemetry dashboard tracking socket li
 ## 🚀 Features
 
 - **Real-Time Terminal TUI:** Clean, auto-refreshing interface powered by `Rich` with zero screen flickering.
+- **Interactive Hotkey Controls:** Cycle live sort modes (`s` for PID, process name, socket state, protocol), freeze/pause updates (`p` or `Space`), and reset sort (`r`).
 - **Process-Level Attribution:** Maps active TCP and UDP sockets to their originating PID, command name, and user.
 - **Differential Rate Engine:** Computes rolling delta bandwidth rates (Down / Up KB/s) for both the system and individual processes.
 - **Non-Blocking Async Reverse DNS:** Background worker pool resolves remote IP addresses into hostnames with an LRU cache, preventing network lag from stalling the UI.
+- **GeoIP & ASN Enrichment:** Automatically tags public remote endpoints with country codes and network autonomous systems.
 - **Security & Anomaly Detection:** Flags cleartext legacy protocols (Telnet, FTP, TFTP) and abnormal socket spikes.
 - **Exporting Capabilities:** Dump point-in-time snapshots to clean CSV or stream structured JSON lines for SIEM/audit logging.
 
