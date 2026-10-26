@@ -17,9 +17,11 @@ def build_demo_screen():
     header_text.append("  |  Tracked Processes: ", style="bold white")
     header_text.append("18", style="bold yellow")
     header_text.append("  |  ▼ Down: ", style="bold green")
-    header_text.append("3.2 MB/s", style="bold bright_green")
+    header_text.append("3.2 MB/s ", style="bold bright_green")
+    header_text.append(" ▂▄▆██▆▄▂", style="bright_green")
     header_text.append("  ▲ Up: ", style="bold cyan")
-    header_text.append("412.5 KB/s", style="bold bright_cyan")
+    header_text.append("412.5 KB/s ", style="bold bright_cyan")
+    header_text.append(" ▂▃▅▆▇▅▃", style="bright_cyan")
 
     header_panel = Panel(
         header_text,
@@ -67,6 +69,8 @@ def build_demo_screen():
     footer_text = Text()
     footer_text.append(" [q] ", style="bold cyan")
     footer_text.append("Quit  ", style="dim white")
+    footer_text.append(" [/] ", style="bold cyan")
+    footer_text.append("Filter  ", style="dim white")
     footer_text.append(" [s] ", style="bold cyan")
     footer_text.append("Sort: pid  ", style="bold yellow")
     footer_text.append(" [p/space] ", style="bold cyan")

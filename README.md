@@ -43,13 +43,27 @@ A high-performance Linux terminal network telemetry dashboard tracking socket li
 ## 🚀 Features
 
 - **Real-Time Terminal TUI:** Clean, auto-refreshing interface powered by `Rich` with zero screen flickering.
+- **Interactive Search & Filter Mode (`/`):** Press `/` to filter connections in real time by process name, remote IP, port, or connection state without restarting.
 - **Interactive Hotkey Controls:** Cycle live sort modes (`s` for PID, process name, socket state, protocol), freeze/pause updates (`p` or `Space`), and reset sort (`r`).
+- **Live Bandwidth History Sparklines:** Rolling Unicode sparklines (` ▂▄▆██▆▄▂`) tracking system upload and download throughput over time.
 - **Process-Level Attribution:** Maps active TCP and UDP sockets to their originating PID, command name, and user.
 - **Differential Rate Engine:** Computes rolling delta bandwidth rates (Down / Up KB/s) for both the system and individual processes.
 - **Non-Blocking Async Reverse DNS:** Background worker pool resolves remote IP addresses into hostnames with an LRU cache, preventing network lag from stalling the UI.
 - **GeoIP & ASN Enrichment:** Automatically tags public remote endpoints with country codes and network autonomous systems.
 - **Security & Anomaly Detection:** Flags cleartext legacy protocols (Telnet, FTP, TFTP) and abnormal socket spikes.
 - **Exporting Capabilities:** Dump point-in-time snapshots to clean CSV or stream structured JSON lines for SIEM/audit logging.
+
+---
+
+### ⌨️ Interactive Keybindings
+
+| Key | Action | Description |
+| :--- | :--- | :--- |
+| `q` | **Quit** | Exits `netlog-cli` cleanly and restores terminal state |
+| `/` | **Filter / Search** | Type query to filter by process name, port, IP, or state |
+| `s` | **Cycle Sort** | Cycles sort modes (`pid` → `process` → `state` → `proto` → `default`) |
+| `p` or `Space` | **Pause / Resume** | Freezes live socket polling for manual inspection |
+| `r` | **Reset** | Clears active filters and restores default sort order |
 
 ---
 
