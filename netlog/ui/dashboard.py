@@ -1,0 +1,121 @@
+from typing import List, Optional
+from rich.table import Table
+from rich.panel import Panel
+from rich.layout import Layout
+from rich.text import Text
+from rich import box
+from netlog.core.models import NetworkSnapshot, ConnectionInfo
+from netlog.core.resolver import AsyncDNSResolver
+
+STATUS_COLORS = {
+    "ESTABLISHED": "bold green",
+    "SYN_SENT": "bold magenta",
+    "SYN_RECV": "magenta",
+    "FIN_WAIT1": "yellow",
+    "FIN_WAIT2": "yellow",
+    "TIME_WAIT": "dim yellow",
+    "CLOSE": "dim white",
+    "CLOSE_WAIT": "dark_orange",
+    "LAST_ACK": "dark_orange",
+    "LISTEN": "bold cyan",
+    "CLOSING": "red",
+    "NONE": "dim white",
+    "STATELESS": "bright_blue",
+}
+
+def format_rate(kbps: float) -> str:
+    if kbps >= 1024.0:
+        return f"{kbps / 1024.0:.1f} MB/s"
+    return f"{kbps:.1f} KB/s"
+
+def create_header_panel(snapshot: NetworkSnapshot) -> Panel:
+    text = Text()
+    text.append(" 🌐 NETLOG-CLI ", style="bold black on bright_cyan")
+    text.append("  |  Active Sockets: ", style="bold white")
+    text.append(str(snapshot.total_connections), style="bold yellow")
+    text.append("  |  Tracked Processes: ", style="bold white")
+    text.append(str(snapshot.active_processes_count), style="bold yellow")
+    text.append("  |  ▼ Down: ", style="bold green")
+    text.append(format_rate(snapshot.system_download_rate), style="bold bright_green")
+    text.append("  ▲ Up: ", style="bold cyan")
+    text.append(format_rate(snapshot.system_upload_rate), style="bold bright_cyan")
+
+    return Panel(
+        text,
+        box=box.ROUNDED,
+        border_style="bright_blue",
+        padding=(0, 1),
+    )
+
+def create_connections_table(
+    connections: List[ConnectionInfo],
+    resolver: AsyncDNSResolver,
+    max_rows: int = 25,
+    filter_process: Optional[str] = None
+) -> Table:
+    table = Table(
+        box=box.SIMPLE_HEAVY,
+        show_header=True,
+        header_style="bold bright_white on grey23",
+        expand=True,
+        row_styles=["none", "dim"],
+    )
+
+    table.add_column("PID", justify="right", style="cyan", no_wrap=True, width=7)
+    table.add_column("Process", style="bold white", width=16)
+    table.add_column("Proto", justify="center", style="yellow", width=6)
+    table.add_column("Local Endpoint", style="green", width=22)
+    table.add_column("Remote Endpoint", style="bright_blue", width=22)
+    table.add_column("Peer Hostname", style="italic bright_white", width=24)
+    table.add_column("State", justify="center", width=14)
+    table.add_column("Status / Alert", style="bold red")
+
+    filtered = connections
+    if filter_process:
+        query = filter_process.lower()
+        filtered = [c for c in connections if query in c.process_name.lower()]
+
+    for conn in filtered[:max_rows]:
+        pid_str = str(conn.pid) if conn.pid else "-"
+        state_color = STATUS_COLORS.get(conn.status, "white")
+        state_text = Text(conn.status, style=state_color)
+
+        peer_host = resolver.resolve(conn.raddr)
+        if len(peer_host) > 23:
+            peer_host = peer_host[:20] + "..."
+
+        alert_text = Text()
+        if conn.is_suspicious:
+            alert_text.append("⚠ " + conn.anomaly_reason, style="bold red")
+        else:
+            alert_text.append("OK", style="dim green")
+
+        proc_disp = conn.process_name
+        if len(proc_disp) > 15:
+            proc_disp = proc_disp[:13] + ".."
+
+        table.add_row(
+            pid_str,
+            proc_disp,
+            conn.proto,
+            conn.local_endpoint,
+            conn.remote_endpoint,
+            peer_host,
+            state_text,
+            alert_text,
+        )
+
+    return table
+
+def render_dashboard(
+    snapshot: NetworkSnapshot,
+    resolver: AsyncDNSResolver,
+    filter_process: Optional[str] = None,
+    max_rows: int = 25
+) -> Layout:
+    layout = Layout()
+    layout.split_column(
+        Layout(create_header_panel(snapshot), size=3),
+        Layout(create_connections_table(snapshot.connections, resolver, max_rows, filter_process))
+    )
+    return layout
