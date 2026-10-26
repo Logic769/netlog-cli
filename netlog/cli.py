@@ -97,6 +97,9 @@ def main():
     sort_modes = ["default", "pid", "process", "state", "proto"]
     sort_idx = 0
     is_paused = False
+    is_searching = False
+    search_buffer = ""
+    active_filter = args.process
     snapshot = rate_engine.capture_snapshot()
     anomaly_detector.inspect_connections(snapshot.connections, snapshot.processes)
     last_sample_time = time.time()
@@ -106,16 +109,35 @@ def main():
             while True:
                 # Poll non-blocking keyboard input (50ms timeout)
                 key = kbd.get_key(timeout=0.05)
-                if key:
-                    key = key.lower()
-                    if key in ('q', '\x03'):
-                        break
-                    elif key == 's':
-                        sort_idx = (sort_idx + 1) % len(sort_modes)
-                    elif key in ('p', ' '):
-                        is_paused = not is_paused
-                    elif key == 'r':
-                        sort_idx = 0
+                if is_searching:
+                    if key:
+                        if key in ('\r', '\n'):  # Enter: confirm search
+                            is_searching = False
+                            active_filter = search_buffer if search_buffer.strip() else None
+                        elif key == '\x1b':  # Escape: cancel search
+                            is_searching = False
+                            search_buffer = ""
+                            active_filter = args.process
+                        elif key in ('\x7f', '\x08'):  # Backspace
+                            search_buffer = search_buffer[:-1]
+                        elif len(key) == 1 and 32 <= ord(key) <= 126:
+                            search_buffer += key
+                else:
+                    if key:
+                        key_lower = key.lower()
+                        if key_lower in ('q', '\x03'):
+                            break
+                        elif key == '/':
+                            is_searching = True
+                            search_buffer = active_filter or ""
+                        elif key_lower == 's':
+                            sort_idx = (sort_idx + 1) % len(sort_modes)
+                        elif key_lower in ('p', ' '):
+                            is_paused = not is_paused
+                        elif key_lower == 'r':
+                            sort_idx = 0
+                            active_filter = args.process
+                            search_buffer = ""
 
                 now = time.time()
                 if not is_paused and (now - last_sample_time >= args.interval):
@@ -127,14 +149,17 @@ def main():
                     last_sample_time = now
 
                 current_sort = sort_modes[sort_idx]
+                effective_filter = search_buffer if is_searching else active_filter
                 layout = render_dashboard(
                     snapshot,
                     dns_resolver,
-                    filter_process=args.process,
+                    filter_process=effective_filter,
                     max_rows=args.rows,
                     sort_by=current_sort,
                     is_paused=is_paused,
-                    geoip_resolver=geoip_resolver
+                    geoip_resolver=geoip_resolver,
+                    is_searching=is_searching,
+                    search_buffer=search_buffer
                 )
                 live.update(layout)
 

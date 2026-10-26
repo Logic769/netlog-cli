@@ -40,8 +40,12 @@ def create_header_panel(snapshot: NetworkSnapshot, is_paused: bool = False) -> P
     text.append(str(snapshot.active_processes_count), style="bold yellow")
     text.append("  |  ▼ Down: ", style="bold green")
     text.append(format_rate(snapshot.system_download_rate), style="bold bright_green")
+    if snapshot.download_sparkline:
+        text.append(f" {snapshot.download_sparkline}", style="bright_green")
     text.append("  ▲ Up: ", style="bold cyan")
     text.append(format_rate(snapshot.system_upload_rate), style="bold bright_cyan")
+    if snapshot.upload_sparkline:
+        text.append(f" {snapshot.upload_sparkline}", style="bright_cyan")
 
     return Panel(
         text,
@@ -50,16 +54,31 @@ def create_header_panel(snapshot: NetworkSnapshot, is_paused: bool = False) -> P
         padding=(0, 1),
     )
 
-def create_footer_panel(sort_mode: str = "default", is_paused: bool = False) -> Panel:
+def create_footer_panel(
+    sort_mode: str = "default",
+    is_paused: bool = False,
+    search_query: Optional[str] = None,
+    is_searching: bool = False
+) -> Panel:
     text = Text()
-    text.append(" [q] ", style="bold cyan")
-    text.append("Quit  ", style="dim white")
-    text.append(" [s] ", style="bold cyan")
-    text.append(f"Sort: {sort_mode}  ", style="bold yellow")
-    text.append(" [p/space] ", style="bold cyan")
-    text.append("Resume  " if is_paused else "Pause  ", style="bold red" if is_paused else "dim white")
-    text.append(" [r] ", style="bold cyan")
-    text.append("Reset Sort", style="dim white")
+    if is_searching:
+        text.append(" 🔍 SEARCH: ", style="bold black on bright_yellow")
+        text.append(f" {search_query or ''}_ ", style="bold bright_white")
+        text.append(" (Enter: Apply | Esc: Clear)", style="dim white")
+    else:
+        text.append(" [q] ", style="bold cyan")
+        text.append("Quit  ", style="dim white")
+        text.append(" [/] ", style="bold cyan")
+        if search_query:
+            text.append(f"Filter: '{search_query}'  ", style="bold bright_green")
+        else:
+            text.append("Filter  ", style="dim white")
+        text.append(" [s] ", style="bold cyan")
+        text.append(f"Sort: {sort_mode}  ", style="bold yellow")
+        text.append(" [p/space] ", style="bold cyan")
+        text.append("Resume  " if is_paused else "Pause  ", style="bold red" if is_paused else "dim white")
+        text.append(" [r] ", style="bold cyan")
+        text.append("Reset Sort", style="dim white")
     return Panel(text, box=box.ROUNDED, border_style="grey37", padding=(0, 1))
 
 def create_connections_table(
@@ -67,6 +86,7 @@ def create_connections_table(
     resolver: AsyncDNSResolver,
     max_rows: int = 25,
     filter_process: Optional[str] = None,
+    filter_query: Optional[str] = None,
     sort_by: str = "default",
     geoip_resolver: Optional[AsyncGeoIPResolver] = None
 ) -> Table:
@@ -88,9 +108,18 @@ def create_connections_table(
     table.add_column("Status / Alert", style="bold red")
 
     filtered = list(connections)
-    if filter_process:
-        query = filter_process.lower()
-        filtered = [c for c in filtered if query in c.process_name.lower()]
+    active_search = filter_query or filter_process
+    if active_search:
+        q = active_search.lower()
+        filtered = [
+            c for c in filtered
+            if q in c.process_name.lower()
+            or q in c.remote_endpoint.lower()
+            or q in c.local_endpoint.lower()
+            or q in c.status.lower()
+            or q in c.proto.lower()
+            or (c.pid is not None and q in str(c.pid))
+        ]
 
     if sort_by == "pid":
         filtered.sort(key=lambda c: c.pid or 0)
@@ -145,12 +174,15 @@ def render_dashboard(
     max_rows: int = 25,
     sort_by: str = "default",
     is_paused: bool = False,
-    geoip_resolver: Optional[AsyncGeoIPResolver] = None
+    geoip_resolver: Optional[AsyncGeoIPResolver] = None,
+    is_searching: bool = False,
+    search_buffer: str = ""
 ) -> Layout:
+    active_filter = search_buffer if is_searching else filter_process
     layout = Layout()
     layout.split_column(
         Layout(create_header_panel(snapshot, is_paused=is_paused), size=3),
-        Layout(create_connections_table(snapshot.connections, resolver, max_rows, filter_process, sort_by=sort_by, geoip_resolver=geoip_resolver)),
-        Layout(create_footer_panel(sort_mode=sort_by, is_paused=is_paused), size=3)
+        Layout(create_connections_table(snapshot.connections, resolver, max_rows, filter_query=active_filter, sort_by=sort_by, geoip_resolver=geoip_resolver)),
+        Layout(create_footer_panel(sort_mode=sort_by, is_paused=is_paused, search_query=active_filter, is_searching=is_searching), size=3)
     )
     return layout
