@@ -26,6 +26,16 @@ make dev
 
 ---
 
+## 🧭 Finding an Issue to Work On
+
+If you are new to the codebase, check out issues tagged for newcomers:
+- 🟢 **[Good First Issues](https://github.com/mokshithr530/netlog-cli/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)**: Beginner-friendly, well-scoped tasks with clear directions.
+- 🟡 **[Help Wanted Issues](https://github.com/mokshithr530/netlog-cli/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)**: Community enhancements looking for contributors.
+
+Feel free to comment on any issue to claim it before you start working!
+
+---
+
 ## 🧪 Running Tests & Quality Checks
 
 Before submitting any code changes, ensure all unit tests pass:
