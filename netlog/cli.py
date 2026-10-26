@@ -7,6 +7,7 @@ from rich.live import Live
 from netlog import __version__
 from netlog.core.metrics import RateCalculator
 from netlog.core.resolver import AsyncDNSResolver
+from netlog.core.geoip import AsyncGeoIPResolver
 from netlog.core.anomaly import AnomalyDetector
 from netlog.ui.dashboard import render_dashboard, create_connections_table
 from netlog.ui.keyboard import KeyboardInput
@@ -65,6 +66,7 @@ def main():
 
     rate_engine = RateCalculator()
     dns_resolver = AsyncDNSResolver()
+    geoip_resolver = AsyncGeoIPResolver()
     anomaly_detector = AnomalyDetector()
 
     if args.once:
@@ -83,10 +85,12 @@ def main():
             snapshot.connections,
             dns_resolver,
             max_rows=args.rows,
-            filter_process=args.process
+            filter_process=args.process,
+            geoip_resolver=geoip_resolver
         )
         console.print(table)
         dns_resolver.shutdown()
+        geoip_resolver.shutdown()
         return
 
     # Live Interactive Loop
@@ -129,7 +133,8 @@ def main():
                     filter_process=args.process,
                     max_rows=args.rows,
                     sort_by=current_sort,
-                    is_paused=is_paused
+                    is_paused=is_paused,
+                    geoip_resolver=geoip_resolver
                 )
                 live.update(layout)
 
@@ -137,6 +142,7 @@ def main():
         pass
     finally:
         dns_resolver.shutdown()
+        geoip_resolver.shutdown()
         console.print("\n[bold cyan]netlog-cli stopped cleanly. Goodbye![/bold cyan]")
 
 if __name__ == "__main__":

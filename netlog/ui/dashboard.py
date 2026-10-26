@@ -6,6 +6,7 @@ from rich.text import Text
 from rich import box
 from netlog.core.models import NetworkSnapshot, ConnectionInfo
 from netlog.core.resolver import AsyncDNSResolver
+from netlog.core.geoip import AsyncGeoIPResolver
 
 STATUS_COLORS = {
     "ESTABLISHED": "bold green",
@@ -66,7 +67,8 @@ def create_connections_table(
     resolver: AsyncDNSResolver,
     max_rows: int = 25,
     filter_process: Optional[str] = None,
-    sort_by: str = "default"
+    sort_by: str = "default",
+    geoip_resolver: Optional[AsyncGeoIPResolver] = None
 ) -> Table:
     table = Table(
         box=box.SIMPLE_HEAVY,
@@ -81,7 +83,7 @@ def create_connections_table(
     table.add_column("Proto", justify="center", style="yellow", width=6)
     table.add_column("Local Endpoint", style="green", width=22)
     table.add_column("Remote Endpoint", style="bright_blue", width=22)
-    table.add_column("Peer Hostname", style="italic bright_white", width=24)
+    table.add_column("Peer / Geo", style="italic bright_white", width=26)
     table.add_column("State", justify="center", width=14)
     table.add_column("Status / Alert", style="bold red")
 
@@ -105,8 +107,13 @@ def create_connections_table(
         state_text = Text(conn.status, style=state_color)
 
         peer_host = resolver.resolve(conn.raddr)
-        if len(peer_host) > 23:
-            peer_host = peer_host[:20] + "..."
+        if geoip_resolver and conn.raddr:
+            geo = geoip_resolver.lookup(conn.raddr)
+            if geo and geo.country_code:
+                peer_host = f"{peer_host} [{geo.country_code}]"
+
+        if len(peer_host) > 25:
+            peer_host = peer_host[:22] + "..."
 
         alert_text = Text()
         if conn.is_suspicious:
@@ -137,12 +144,13 @@ def render_dashboard(
     filter_process: Optional[str] = None,
     max_rows: int = 25,
     sort_by: str = "default",
-    is_paused: bool = False
+    is_paused: bool = False,
+    geoip_resolver: Optional[AsyncGeoIPResolver] = None
 ) -> Layout:
     layout = Layout()
     layout.split_column(
         Layout(create_header_panel(snapshot, is_paused=is_paused), size=3),
-        Layout(create_connections_table(snapshot.connections, resolver, max_rows, filter_process, sort_by=sort_by)),
+        Layout(create_connections_table(snapshot.connections, resolver, max_rows, filter_process, sort_by=sort_by, geoip_resolver=geoip_resolver)),
         Layout(create_footer_panel(sort_mode=sort_by, is_paused=is_paused), size=3)
     )
     return layout

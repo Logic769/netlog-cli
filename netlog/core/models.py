@@ -16,6 +16,8 @@ class ConnectionInfo:
     process_name: str
     user: str
     hostname: Optional[str] = None
+    country: Optional[str] = None
+    org: Optional[str] = None
     is_suspicious: bool = False
     anomaly_reason: str = ""
 
