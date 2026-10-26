@@ -9,6 +9,7 @@ from netlog.core.metrics import RateCalculator
 from netlog.core.resolver import AsyncDNSResolver
 from netlog.core.anomaly import AnomalyDetector
 from netlog.ui.dashboard import render_dashboard, create_connections_table
+from netlog.ui.keyboard import KeyboardInput
 from netlog.exporters.logger import TrafficExporter
 
 def parse_args():
@@ -89,23 +90,48 @@ def main():
         return
 
     # Live Interactive Loop
+    sort_modes = ["default", "pid", "process", "state", "proto"]
+    sort_idx = 0
+    is_paused = False
+    snapshot = rate_engine.capture_snapshot()
+    anomaly_detector.inspect_connections(snapshot.connections, snapshot.processes)
+    last_sample_time = time.time()
+
     try:
-        with Live(console=console, screen=True, refresh_per_second=int(1.0 / max(args.interval, 0.2))) as live:
+        with KeyboardInput() as kbd, Live(console=console, screen=True, auto_refresh=True) as live:
             while True:
-                snapshot = rate_engine.capture_snapshot()
-                anomaly_detector.inspect_connections(snapshot.connections, snapshot.processes)
+                # Poll non-blocking keyboard input (50ms timeout)
+                key = kbd.get_key(timeout=0.05)
+                if key:
+                    key = key.lower()
+                    if key in ('q', '\x03'):
+                        break
+                    elif key == 's':
+                        sort_idx = (sort_idx + 1) % len(sort_modes)
+                    elif key in ('p', ' '):
+                        is_paused = not is_paused
+                    elif key == 'r':
+                        sort_idx = 0
 
-                if args.export_json:
-                    TrafficExporter.export_json(snapshot.connections, args.export_json)
+                now = time.time()
+                if not is_paused and (now - last_sample_time >= args.interval):
+                    snapshot = rate_engine.capture_snapshot()
+                    anomaly_detector.inspect_connections(snapshot.connections, snapshot.processes)
 
+                    if args.export_json:
+                        TrafficExporter.export_json(snapshot.connections, args.export_json)
+                    last_sample_time = now
+
+                current_sort = sort_modes[sort_idx]
                 layout = render_dashboard(
                     snapshot,
                     dns_resolver,
                     filter_process=args.process,
-                    max_rows=args.rows
+                    max_rows=args.rows,
+                    sort_by=current_sort,
+                    is_paused=is_paused
                 )
                 live.update(layout)
-                time.sleep(args.interval)
 
     except KeyboardInterrupt:
         pass

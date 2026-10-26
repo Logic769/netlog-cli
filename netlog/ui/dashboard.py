@@ -28,9 +28,11 @@ def format_rate(kbps: float) -> str:
         return f"{kbps / 1024.0:.1f} MB/s"
     return f"{kbps:.1f} KB/s"
 
-def create_header_panel(snapshot: NetworkSnapshot) -> Panel:
+def create_header_panel(snapshot: NetworkSnapshot, is_paused: bool = False) -> Panel:
     text = Text()
     text.append(" 🌐 NETLOG-CLI ", style="bold black on bright_cyan")
+    if is_paused:
+        text.append(" [PAUSED] ", style="bold bright_white on red")
     text.append("  |  Active Sockets: ", style="bold white")
     text.append(str(snapshot.total_connections), style="bold yellow")
     text.append("  |  Tracked Processes: ", style="bold white")
@@ -47,11 +49,24 @@ def create_header_panel(snapshot: NetworkSnapshot) -> Panel:
         padding=(0, 1),
     )
 
+def create_footer_panel(sort_mode: str = "default", is_paused: bool = False) -> Panel:
+    text = Text()
+    text.append(" [q] ", style="bold cyan")
+    text.append("Quit  ", style="dim white")
+    text.append(" [s] ", style="bold cyan")
+    text.append(f"Sort: {sort_mode}  ", style="bold yellow")
+    text.append(" [p/space] ", style="bold cyan")
+    text.append("Resume  " if is_paused else "Pause  ", style="bold red" if is_paused else "dim white")
+    text.append(" [r] ", style="bold cyan")
+    text.append("Reset Sort", style="dim white")
+    return Panel(text, box=box.ROUNDED, border_style="grey37", padding=(0, 1))
+
 def create_connections_table(
     connections: List[ConnectionInfo],
     resolver: AsyncDNSResolver,
     max_rows: int = 25,
-    filter_process: Optional[str] = None
+    filter_process: Optional[str] = None,
+    sort_by: str = "default"
 ) -> Table:
     table = Table(
         box=box.SIMPLE_HEAVY,
@@ -70,10 +85,19 @@ def create_connections_table(
     table.add_column("State", justify="center", width=14)
     table.add_column("Status / Alert", style="bold red")
 
-    filtered = connections
+    filtered = list(connections)
     if filter_process:
         query = filter_process.lower()
-        filtered = [c for c in connections if query in c.process_name.lower()]
+        filtered = [c for c in filtered if query in c.process_name.lower()]
+
+    if sort_by == "pid":
+        filtered.sort(key=lambda c: c.pid or 0)
+    elif sort_by == "process":
+        filtered.sort(key=lambda c: (c.process_name or "").lower())
+    elif sort_by == "state":
+        filtered.sort(key=lambda c: c.status)
+    elif sort_by == "proto":
+        filtered.sort(key=lambda c: c.proto)
 
     for conn in filtered[:max_rows]:
         pid_str = str(conn.pid) if conn.pid else "-"
@@ -111,11 +135,14 @@ def render_dashboard(
     snapshot: NetworkSnapshot,
     resolver: AsyncDNSResolver,
     filter_process: Optional[str] = None,
-    max_rows: int = 25
+    max_rows: int = 25,
+    sort_by: str = "default",
+    is_paused: bool = False
 ) -> Layout:
     layout = Layout()
     layout.split_column(
-        Layout(create_header_panel(snapshot), size=3),
-        Layout(create_connections_table(snapshot.connections, resolver, max_rows, filter_process))
+        Layout(create_header_panel(snapshot, is_paused=is_paused), size=3),
+        Layout(create_connections_table(snapshot.connections, resolver, max_rows, filter_process, sort_by=sort_by)),
+        Layout(create_footer_panel(sort_mode=sort_by, is_paused=is_paused), size=3)
     )
     return layout
