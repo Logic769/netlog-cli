@@ -17,4 +17,12 @@ def test_sorting_connections():
     table_proc = create_connections_table([c1, c2], resolver, sort_by="process")
     assert table_proc is not None
 
+    # Test search filter by process substring
+    table_filter_alpha = create_connections_table([c1, c2], resolver, filter_query="alpha")
+    assert len(table_filter_alpha.rows) == 1
+
+    # Test search filter by port
+    table_filter_port = create_connections_table([c1, c2], resolver, filter_query="8080")
+    assert len(table_filter_port.rows) == 1
+
     resolver.shutdown()
