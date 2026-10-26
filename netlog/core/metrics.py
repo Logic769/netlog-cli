@@ -1,8 +1,28 @@
 import time
-from typing import Dict, Tuple, Optional
+import collections
+from typing import Dict, Tuple, Optional, List
 import psutil
 from netlog.core.models import ProcessNetworkStats, NetworkSnapshot, ConnectionInfo
 from netlog.core.monitor import SocketMonitor
+
+SPARK_BARS = " ▂▃▄▅▆▇█"
+
+def generate_sparkline(values: List[float], width: int = 12) -> str:
+    """Renders a sequence of numerical values into a compact Unicode sparkline."""
+    if not values:
+        return ""
+    window = values[-width:]
+    max_val = max(window)
+    if max_val <= 0.0:
+        return SPARK_BARS[0] * len(window)
+    
+    res = []
+    n_bars = len(SPARK_BARS) - 1
+    for v in window:
+        ratio = max(0.0, min(v / max_val, 1.0))
+        idx = int(ratio * n_bars)
+        res.append(SPARK_BARS[idx])
+    return "".join(res)
 
 class RateCalculator:
     """
@@ -10,13 +30,17 @@ class RateCalculator:
     using differential sampling across moving time windows.
     """
 
-    def __init__(self, monitor: Optional[SocketMonitor] = None):
+    def __init__(self, monitor: Optional[SocketMonitor] = None, history_len: int = 20):
         self.monitor = monitor or SocketMonitor()
         self._last_system_time = time.time()
         self._last_system_io = psutil.net_io_counters()
 
         # Cache of PID -> (bytes_read, bytes_written, timestamp)
         self._proc_io_history: Dict[int, Tuple[int, int, float]] = {}
+
+        # Rolling history for sparklines
+        self.down_history = collections.deque(maxlen=history_len)
+        self.up_history = collections.deque(maxlen=history_len)
 
     def get_system_rates(self) -> Tuple[float, float, int, int]:
         """
@@ -80,7 +104,12 @@ class RateCalculator:
         grouped_procs = self.monitor.group_by_process(connections)
 
         up_rate, down_rate, sys_sent, sys_recv = self.get_system_rates()
+        self.down_history.append(down_rate)
+        self.up_history.append(up_rate)
         self.update_process_rates(grouped_procs)
+
+        down_spark = generate_sparkline(list(self.down_history))
+        up_spark = generate_sparkline(list(self.up_history))
 
         return NetworkSnapshot(
             timestamp=time.time(),
@@ -92,4 +121,6 @@ class RateCalculator:
             system_download_rate=down_rate,
             connections=connections,
             processes=grouped_procs,
+            download_sparkline=down_spark,
+            upload_sparkline=up_spark,
         )

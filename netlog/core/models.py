@@ -57,3 +57,5 @@ class NetworkSnapshot:
     system_download_rate: float
     connections: List[ConnectionInfo]
     processes: Dict[int, ProcessNetworkStats]
+    download_sparkline: str = ""
+    upload_sparkline: str = ""
